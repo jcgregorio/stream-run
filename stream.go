@@ -108,24 +108,30 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 		if limitText == "" {
 			limitText = "20"
 		}
-		offsetText := r.FormValue("offset")
-		if offsetText == "" {
-			offsetText = "0"
-		}
 		limit, err := strconv.ParseInt(limitText, 10, 32)
 		if err != nil {
 			log.Infof("Failed to parse limit: %s", err)
 			return
 		}
-		offset, err := strconv.ParseInt(offsetText, 10, 32)
+		/*
+			offsetText := r.FormValue("offset")
+			if offsetText == "" {
+				offsetText = "0"
+			}
+			offset, err := strconv.ParseInt(offsetText, 10, 32)
+			if err != nil {
+				log.Infof("Failed to parse offset: %s", err)
+				return
+			}
+		*/
+		entries, err := e.List(r.Context(), int(limit))
 		if err != nil {
-			log.Infof("Failed to parse offset: %s", err)
+			log.Warningf("Failed to get entries: %s", err)
 			return
 		}
 		context = &adminContext{
-			IsAdmin:  isAdmin,
-			Mentions: e.List(r.Context(), int(limit)),
-			Offset:   offset + limit,
+			IsAdmin: isAdmin,
+			Entries: entries,
 		}
 	}
 	if err := adminTemplate.Execute(w, context); err != nil {
@@ -153,12 +159,7 @@ func main() {
 	*/
 
 	r := mux.NewRouter()
-	r.HandleFunc("/Mentions", mentionsHandler).Methods("GET", "OPTIONS")
-	r.HandleFunc("/IncomingWebMention", incomingWebMentionHandler).Methods("POST")
-	r.HandleFunc("/UpdateMention", updateMentionHandler).Methods("POST")
-	r.HandleFunc("/Thumbnail/{id:[a-z0-9]+}", thumbnailHandler).Methods("GET")
-	r.HandleFunc("/VerifyQueuedMentions", verifyQueuedMentions).Methods("POST")
-	r.HandleFunc("/", triageHandler).Methods("GET")
+	r.HandleFunc("/admin", adminHandler).Methods("GET", "OPTIONS")
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":"+config.PORT, nil))
