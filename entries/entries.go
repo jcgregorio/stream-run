@@ -36,10 +36,10 @@ func New(ctx context.Context, project, ns string, log slog.Logger) (*Entries, er
 }
 
 type Entry struct {
-	Title   string    `datastore:",noindex"`
-	Content string    `datastore:",noindex"`
+	Title   string    `datastore:"title,noindex"`
+	Content string    `datastore:"content,noindex"`
 	ID      string    `datastore:"-"`
-	Created time.Time `datastore:",Created"`
+	Created time.Time `datastore:"created"`
 }
 
 func (e *Entries) Get(ctx context.Context, id string) (*Entry, error) {
@@ -57,7 +57,7 @@ func (e *Entries) Get(ctx context.Context, id string) (*Entry, error) {
 
 func (e *Entries) Insert(ctx context.Context, content, title string) (string, error) {
 	key := e.DS.NewKey(ENTRY)
-	key.Name = fmt.Sprintf("%x", md5.Sum([]byte(content+title)))
+	key.Name = fmt.Sprintf("%x", md5.Sum([]byte(content+title+time.Now().Format(time.RFC3339Nano))))
 
 	entry := &Entry{
 		Content: content,
@@ -69,16 +69,27 @@ func (e *Entries) Insert(ctx context.Context, content, title string) (string, er
 }
 
 func (e *Entries) Update(ctx context.Context, id, content, title string) error {
-	return nil
+	key := e.DS.NewKey(ENTRY)
+	key.Name = id
+
+	entry := &Entry{
+		Content: content,
+		Title:   title,
+		Created: time.Now(),
+	}
+	_, err := e.DS.Client.Put(context.Background(), key, entry)
+	return err
 }
 
 func (e *Entries) Delete(ctx context.Context, id string) error {
-	return nil
+	key := e.DS.NewKey(ENTRY)
+	key.Name = id
+	return e.DS.Client.Delete(context.Background(), key)
 }
 
 func (e *Entries) List(ctx context.Context, n int) ([]*Entry, error) {
 	ret := []*Entry{}
-	q := e.DS.NewQuery(ENTRY).Order("-Created").Limit(n)
+	q := e.DS.NewQuery(ENTRY).Order("-created").Limit(n)
 
 	it := e.DS.Client.Run(ctx, q)
 	for {

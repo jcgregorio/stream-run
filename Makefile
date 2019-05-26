@@ -25,7 +25,8 @@ start_datastore_emulator:
 	 echo To attach run:
 	 echo "  export DATASTORE_EMULATOR_HOST=0.0.0.0:8000"
 	 docker run -ti -p 8000:8000 google/cloud-sdk:latest gcloud beta emulators datastore start \
-		 --no-store-on-disk --project test-project --host-port 0.0.0.0:8000
+		 --no-store-on-disk --project test-project --host-port 0.0.0.0:8000 \
+		 --consistency=1.0
 
 test:
 	go test ./...
