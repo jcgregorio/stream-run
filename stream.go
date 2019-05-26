@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	e *entries.Entries
+	entryDB *entries.Entries
 
 	log = logger.New()
 
@@ -46,12 +46,8 @@ var (
     <meta name="google-signin-client_id" content="%s">
     <script src="https://apis.google.com/js/platform.js" async defer></script>
 		<style type="text/css" media="screen">
-		  #webmentions {
-				display: grid;
-				padding: 1em;
-				grid-template-columns: 5em 10em 1fr;
-				grid-column-gap: 10px;
-				grid-row-gap: 6px;
+		  .created {
+			  float: right;
 			}
 		</style>
 </head>
@@ -66,9 +62,12 @@ var (
       };
     </script>
   {{range .Entries}}
-	  <h2>{{ .Title }} <span>{{ .Created | humanTime }}</span></h2>
 		<div>
-		  {{ .Content }}
+			<h2>{{ .Title }}</h2>
+			<div>
+        <span class=created>{{ .Created | humanTime }}</span>
+				{{ .Content }}
+			</div>
 		</div>
   {{end}}
 	<hr>
@@ -85,7 +84,7 @@ var (
 
 func initialize() {
 	var err error
-	e, err = entries.New(context.Background(), config.PROJECT, config.DATASTORE_NAMESPACE, log)
+	entryDB, err = entries.New(context.Background(), config.PROJECT, config.DATASTORE_NAMESPACE, log)
 	if err != nil {
 		log.Fatal(err)
 	} else {
@@ -98,7 +97,7 @@ type adminContext struct {
 	Entries []*entries.Entry
 }
 
-// adminHandler displays the admin page for Webmentions.
+// adminHandler displays the admin page for Stream.
 func adminHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	context := &adminContext{}
@@ -124,7 +123,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		*/
-		entries, err := e.List(r.Context(), int(limit))
+		entries, err := entryDB.List(r.Context(), int(limit))
 		if err != nil {
 			log.Warningf("Failed to get entries: %s", err)
 			return
@@ -137,6 +136,20 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	if err := adminTemplate.Execute(w, context); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
 	}
+}
+
+// adminNewHandler displays the admin page for Stream.
+func adminNewHandler(w http.ResponseWriter, r *http.Request) {
+	if !admin.IsAdmin(r, log) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	_, err := entryDB.Insert(r.Context(), r.FormValue("content"), r.FormValue("title"))
+	if err != nil {
+		log.Errorf("Failed to insert: %s", err)
+		http.Error(w, "Failed to insert", http.StatusInternalServerError)
+	}
+	http.Redirect(w, r, "/admin", 302)
 }
 
 func main() {
@@ -159,6 +172,7 @@ func main() {
 	*/
 
 	r := mux.NewRouter()
+	r.HandleFunc("/admin/new", adminNewHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/admin", adminHandler).Methods("GET", "OPTIONS")
 
 	http.Handle("/", r)
