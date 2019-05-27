@@ -63,6 +63,7 @@ var (
         }
       };
     </script>
+	<div><a href="?offset={{.Offset}}">Next</a></div>
   {{range .Entries}}
 		<div>
 			<h2>{{ .Title }}</h2>
@@ -97,6 +98,7 @@ func initialize() {
 type adminContext struct {
 	IsAdmin bool
 	Entries []*EntryContent
+	Offset  int
 }
 
 type EntryContent struct {
@@ -106,25 +108,26 @@ type EntryContent struct {
 	Created time.Time
 }
 
+func withDefault(s, defaultValue string) string {
+	if s == "" {
+		return defaultValue
+	}
+	return s
+}
+
 // adminHandler displays the admin page for Stream.
 func adminHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	context := &adminContext{}
 	isAdmin := admin.IsAdmin(r, log)
 	if isAdmin {
-		limitText := r.FormValue("limit")
-		if limitText == "" {
-			limitText = "20"
-		}
+		limitText := withDefault(r.FormValue("limit"), "20")
 		limit, err := strconv.ParseInt(limitText, 10, 32)
 		if err != nil {
 			log.Infof("Failed to parse limit: %s", err)
 			return
 		}
-		offsetText := r.FormValue("offset")
-		if offsetText == "" {
-			offsetText = "0"
-		}
+		offsetText := withDefault(r.FormValue("offset"), "0")
 		offset, err := strconv.ParseInt(offsetText, 10, 32)
 		if err != nil {
 			log.Infof("Failed to parse offset: %s", err)
@@ -138,6 +141,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 		context = &adminContext{
 			IsAdmin: isAdmin,
 			Entries: toDisplay(entries),
+			Offset:  int(offset + limit),
 		}
 	}
 	if err := adminTemplate.Execute(w, context); err != nil {
