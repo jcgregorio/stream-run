@@ -51,6 +51,11 @@ var (
 		  .created {
 			  float: right;
 			}
+			.entry {
+			  margin: 1em;
+				padding: 1em;
+				background: #eee;
+			}
 		</style>
 </head>
 <body>
@@ -65,12 +70,13 @@ var (
     </script>
 	<div><a href="?offset={{.Offset}}">Next</a></div>
   {{range .Entries}}
-		<div>
+		<div class=entry>
 			<h2>{{ .Title }}</h2>
 			<div>
         <span class=created>{{ .Created | humanTime }}</span>
 				{{ .Content }}
 			</div>
+			<a href="/admin/edit/{{ .ID }}">Edit</a>
 		</div>
   {{end}}
 	<hr>
@@ -108,11 +114,13 @@ type EntryContent struct {
 	Created time.Time
 }
 
-func withDefault(s, defaultValue string) string {
-	if s == "" {
+func parseWithDefault(s string, defaultValue int) int {
+	// "" will parse as an error.
+	ret, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
 		return defaultValue
 	}
-	return s
+	return int(ret)
 }
 
 // adminHandler displays the admin page for Stream.
@@ -121,18 +129,8 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	context := &adminContext{}
 	isAdmin := admin.IsAdmin(r, log)
 	if isAdmin {
-		limitText := withDefault(r.FormValue("limit"), "20")
-		limit, err := strconv.ParseInt(limitText, 10, 32)
-		if err != nil {
-			log.Infof("Failed to parse limit: %s", err)
-			return
-		}
-		offsetText := withDefault(r.FormValue("offset"), "0")
-		offset, err := strconv.ParseInt(offsetText, 10, 32)
-		if err != nil {
-			log.Infof("Failed to parse offset: %s", err)
-			return
-		}
+		limit := parseWithDefault(r.FormValue("limit"), 20)
+		offset := parseWithDefault(r.FormValue("offset"), 0)
 		entries, err := entryDB.List(r.Context(), int(limit), int(offset))
 		if err != nil {
 			log.Warningf("Failed to get entries: %s", err)
