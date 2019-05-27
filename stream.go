@@ -6,10 +6,12 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	units "github.com/docker/go-units"
 	"github.com/gorilla/mux"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 
 	"github.com/jcgregorio/go-lib/admin"
 	"github.com/jcgregorio/go-lib/config"
@@ -94,7 +96,14 @@ func initialize() {
 
 type adminContext struct {
 	IsAdmin bool
-	Entries []*entries.Entry
+	Entries []*EntryContent
+}
+
+type EntryContent struct {
+	Title   string
+	Content template.HTML
+	ID      string
+	Created time.Time
 }
 
 // adminHandler displays the admin page for Stream.
@@ -130,12 +139,30 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		context = &adminContext{
 			IsAdmin: isAdmin,
-			Entries: entries,
+			Entries: toDisplay(entries),
 		}
 	}
 	if err := adminTemplate.Execute(w, context); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
 	}
+}
+
+func toDisplay(in []*entries.Entry) []*EntryContent {
+	ret := []*EntryContent{}
+	test := "title\n=====\n  * item\n  *item"
+	fmt.Printf("%q %q\n", test, string(blackfriday.Run([]byte(test))))
+	for _, en := range in {
+		content := strings.ReplaceAll(en.Content, "\r\n", "\n")
+
+		fmt.Printf("%q %q\n", en.Content, string(blackfriday.Run([]byte(content))))
+		ret = append(ret, &EntryContent{
+			Title:   en.Title,
+			Content: template.HTML(blackfriday.Run([]byte(content))),
+			ID:      en.ID,
+			Created: en.Created,
+		})
+	}
+	return ret
 }
 
 // adminNewHandler displays the admin page for Stream.
