@@ -121,18 +121,16 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 			log.Infof("Failed to parse limit: %s", err)
 			return
 		}
-		/*
-			offsetText := r.FormValue("offset")
-			if offsetText == "" {
-				offsetText = "0"
-			}
-			offset, err := strconv.ParseInt(offsetText, 10, 32)
-			if err != nil {
-				log.Infof("Failed to parse offset: %s", err)
-				return
-			}
-		*/
-		entries, err := entryDB.List(r.Context(), int(limit))
+		offsetText := r.FormValue("offset")
+		if offsetText == "" {
+			offsetText = "0"
+		}
+		offset, err := strconv.ParseInt(offsetText, 10, 32)
+		if err != nil {
+			log.Infof("Failed to parse offset: %s", err)
+			return
+		}
+		entries, err := entryDB.List(r.Context(), int(limit), int(offset))
 		if err != nil {
 			log.Warningf("Failed to get entries: %s", err)
 			return
@@ -191,6 +189,7 @@ func main() {
 		    /admin/entry
 				            - POST to create.
 		    /admin/entry/<id>
+				            - GET to view and edit.
 							      - PUT to update.
 							      - DELETE to delete.
 		    /admin/rollup

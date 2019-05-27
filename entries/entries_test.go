@@ -49,7 +49,7 @@ to set the environment variables. When done running tests you can unset the env 
 func TestDB(t *testing.T) {
 	e := InitForTesting(t)
 	ctx := context.Background()
-	entries, err := e.List(ctx, 10)
+	entries, err := e.List(ctx, 10, 0)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 0)
 
@@ -57,7 +57,7 @@ func TestDB(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, id, "")
 
-	entries, err = e.List(ctx, 10)
+	entries, err = e.List(ctx, 10, 0)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 1)
 	assert.Equal(t, entries[0].ID, id)
@@ -69,11 +69,11 @@ func TestDB(t *testing.T) {
 	assert.NotEqual(t, id2, "")
 	assert.NotEqual(t, id2, id)
 
-	entries, err = e.List(ctx, 1)
+	entries, err = e.List(ctx, 1, 0)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 1)
 
-	entries, err = e.List(ctx, 10)
+	entries, err = e.List(ctx, 10, 0)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 2)
 	assert.Equal(t, entries[0].ID, id2)
@@ -83,10 +83,17 @@ func TestDB(t *testing.T) {
 	assert.Equal(t, entries[1].Title, "This is title")
 	assert.Equal(t, entries[1].Content, "This is content.")
 
+	entries, err = e.List(ctx, 10, 1)
+	assert.NoError(t, err)
+	assert.Len(t, entries, 1)
+	assert.Equal(t, entries[0].ID, id)
+	assert.Equal(t, entries[0].Title, "This is title")
+	assert.Equal(t, entries[0].Content, "This is content.")
+
 	err = e.Delete(ctx, id)
 	assert.NoError(t, err)
 
-	entries, err = e.List(ctx, 10)
+	entries, err = e.List(ctx, 10, 0)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 1)
 	assert.Equal(t, entries[0].ID, id2)

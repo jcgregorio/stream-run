@@ -87,9 +87,9 @@ func (e *Entries) Delete(ctx context.Context, id string) error {
 	return e.DS.Client.Delete(context.Background(), key)
 }
 
-func (e *Entries) List(ctx context.Context, n int) ([]*Entry, error) {
+func (e *Entries) List(ctx context.Context, n int, offset int) ([]*Entry, error) {
 	ret := []*Entry{}
-	q := e.DS.NewQuery(ENTRY).Order("-created").Limit(n)
+	q := e.DS.NewQuery(ENTRY).Order("-created").Limit(n).Offset(offset)
 
 	it := e.DS.Client.Run(ctx, q)
 	for {
