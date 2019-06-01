@@ -40,6 +40,7 @@ type Entry struct {
 	Content string    `datastore:"content,noindex"`
 	ID      string    `datastore:"-"`
 	Created time.Time `datastore:"created"`
+	Updated time.Time `datastore:"updated"`
 }
 
 func (e *Entries) Get(ctx context.Context, id string) (*Entry, error) {
@@ -59,10 +60,12 @@ func (e *Entries) Insert(ctx context.Context, content, title string) (string, er
 	key := e.DS.NewKey(ENTRY)
 	key.Name = fmt.Sprintf("%x", md5.Sum([]byte(content+title+time.Now().Format(time.RFC3339Nano))))
 
+	now := time.Now()
 	entry := &Entry{
 		Content: content,
 		Title:   title,
-		Created: time.Now(),
+		Created: now,
+		Updated: now,
 	}
 	_, err := e.DS.Client.Put(context.Background(), key, entry)
 	return key.Name, err
@@ -72,6 +75,7 @@ func (e *Entries) Update(ctx context.Context, entry *Entry) error {
 	key := e.DS.NewKey(ENTRY)
 	key.Name = entry.ID
 
+	entry.Updated = time.Now()
 	_, err := e.DS.Client.Put(context.Background(), key, entry)
 	return err
 }

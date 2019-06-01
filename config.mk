@@ -5,3 +5,4 @@ export DATASTORE_NAMESPACE=stream
 export ADMINS=joe.gregorio@gmail.com
 export HOST=https://stream.bitworking.org
 export PORT=1313
+export AUTHOR=Joe Gregorio

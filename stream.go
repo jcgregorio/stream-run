@@ -53,6 +53,9 @@ func loadTemplates() {
 			}
 			return " • " + units.HumanDuration(time.Now().Sub(t)) + " ago"
 		},
+		"atomTime": func(t time.Time) string {
+			return t.Format(time.RFC3339)
+		},
 	})
 	template.Must(templates.ParseGlob(pattern))
 }
@@ -83,10 +86,12 @@ type adminContext struct {
 }
 
 type EntryContent struct {
-	Title   string
-	Content template.HTML
-	ID      string
-	Created time.Time
+	Title       string
+	Content     template.HTML
+	SafeContent string
+	ID          string
+	Created     time.Time
+	Updated     time.Time
 }
 
 func parseWithDefault(s string, defaultValue int) int {
@@ -147,13 +152,48 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type feedContext struct {
+	Updated time.Time
+	Host    string
+	Entries []*EntryContent
+	Author  string
+}
+
+// feedHandler displays the admin page for Stream.
+func feedHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	entries, err := entryDB.List(r.Context(), 10, 0)
+	if err != nil {
+		log.Warningf("Failed to get entries: %s", err)
+		return
+	}
+	updated := time.Time{}
+	for _, entry := range entries {
+		if entry.Updated.After(updated) {
+			updated = entry.Updated
+		}
+	}
+	context := &feedContext{
+		Host:    config.HOST,
+		Author:  config.AUTHOR,
+		Updated: updated,
+		Entries: toDisplaySlice(entries),
+	}
+	if err := templates.ExecuteTemplate(w, "atom.xml", context); err != nil {
+		log.Errorf("Failed to render index template: %s", err)
+	}
+}
+
 func toDisplay(in *entries.Entry) *EntryContent {
 	content := strings.ReplaceAll(in.Content, "\r\n", "\n")
+	content = string(blackfriday.Run([]byte(content)))
 	return &EntryContent{
-		Title:   in.Title,
-		Content: template.HTML(blackfriday.Run([]byte(content))),
-		ID:      in.ID,
-		Created: in.Created,
+		Title:       in.Title,
+		Content:     template.HTML(content),
+		SafeContent: content,
+		ID:          in.ID,
+		Created:     in.Created,
+		Updated:     in.Updated,
 	}
 }
 
@@ -257,6 +297,7 @@ func main() {
 	r.HandleFunc("/admin/new", adminNewHandler).Methods("POST")
 	r.HandleFunc("/admin/edit/{id}", adminEditHandler).Methods("GET", "POST")
 	r.HandleFunc("/admin", adminHandler).Methods("GET")
+	r.HandleFunc("/feed", feedHandler).Methods("GET")
 	r.HandleFunc("/", indexHandler).Methods("GET")
 
 	http.Handle("/", r)

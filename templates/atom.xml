@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <link href="{{.HOST}}/feed/" rel="self" type="application/atom+xml" />
-  <link href="{{.HOST}}/" rel="alternate" type="text/html" />
-  <updated>{{.Updated}}</updated>
-  <id>{{.HOST}}/feed/</id>
+  <link href="{{.Host}}/feed/" rel="self" type="application/atom+xml" />
+  <link href="{{.Host}}/" rel="alternate" type="text/html" />
+  <updated>{{.Updated | atomTime}}</updated>
+  <id>{{.Host}}/feed/</id>
   <title>Stream</title>
+  <author>
+    <name>{{.Author}}</name>
+  </author>
+  {{$Host := .Host}}
   {{range .Entries}}
     <entry>
       <title type="html">OpenID Connect for US Citizens</title>
-      <link href="{{.HOST}}/entry/{{.ID}}" rel="alternate" type="text/html" title="{{.Title}}" />
-      <published>{{.Created}}</published>
-      <updated>{{.Updated}}</updated>
-      <id>{{.ID}}</id>
+      <link href="{{$Host}}/entry/{{.ID}}" rel="alternate" type="text/html" title="{{.Title}}" />
+      <published>{{.Created | atomTime}}</published>
+      <updated>{{.Updated | atomTime}}</updated>
+      <id>{{$Host}}/entry/{{.ID}}</id>
       <content type="html">
-          {{.Content}}
+          {{.SafeContent}}
       </content>
-      <author>
-        <name>Joe Gregorio</name>
-      </author>
     </entry>
   {{end}}
 </feed>
