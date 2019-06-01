@@ -30,6 +30,14 @@
       };
     </script>
 	<div><a href="?offset={{.Offset}}">Next</a></div>
+	<div>
+		<form action="/admin/new" method="post" accept-charset="utf-8">
+		  <p><input type="text" name="title" value=""></p>
+      <textarea name="content" rows="8" cols="80"></textarea>
+			<p><input type="submit" value="Insert"></p>
+		</form>
+	</div>
+	<hr>
   {{range .Entries}}
 		<div class=entry>
 			<h2>{{ .Title }}</h2>
@@ -40,13 +48,5 @@
 			<a href="/admin/edit/{{ .ID }}">Edit</a>
 		</div>
   {{end}}
-	<hr>
-	<div>
-		<form action="/admin/new" method="post" accept-charset="utf-8">
-		  <p><input type="text" name="title" value=""></p>
-      <textarea name="content" rows="8" cols="80"></textarea>
-			<p><input type="submit" value="Insert"></p>
-		</form>
-	</div>
 </body>
 </html>
