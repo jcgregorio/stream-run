@@ -89,6 +89,60 @@ var (
 	</div>
 </body>
 </html>`, config.CLIENT_ID)))
+
+	adminEditTemplate = template.Must(template.New("adminEdit").Funcs(template.FuncMap{
+		"trunc": func(s string) string {
+			if len(s) > 80 {
+				return s[:80] + "..."
+			}
+			return s
+		},
+		"humanTime": func(t time.Time) string {
+			if t.IsZero() {
+				return ""
+			}
+			return " • " + units.HumanDuration(time.Now().Sub(t)) + " ago"
+		},
+	}).Parse(`<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=egde,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style type="text/css" media="screen">
+		  .created {
+			  float: right;
+			}
+			.entry {
+			  margin: 1em;
+				padding: 1em;
+				background: #eee;
+			}
+		</style>
+</head>
+<body>
+  {{with .Cooked}}
+	<div class=entry>
+		<h2>{{ .Title }}</h2>
+		<div>
+			<span class=created>{{ .Created | humanTime }}</span>
+			{{ .Content }}
+		</div>
+	</div>
+	{{end}}
+	<hr>
+	{{with .Raw}}
+	<div>
+		<form action="/admin/edit/{{ .ID }}" method="post" accept-charset="utf-8">
+		  <p><input type="text" name="title" value="{{ .Title }}"></p>
+      <textarea name="content" rows="8" cols="80">{{ .Content }}</textarea>
+			<p><input type="submit" value="Update"></p>
+		</form>
+	</div>
+	{{end}}
+</body>
+</html>`))
 )
 
 func initialize() {
@@ -138,7 +192,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		context = &adminContext{
 			IsAdmin: isAdmin,
-			Entries: toDisplay(entries),
+			Entries: toDisplaySlice(entries),
 			Offset:  int(offset + limit),
 		}
 	}
@@ -147,20 +201,20 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func toDisplay(in []*entries.Entry) []*EntryContent {
-	ret := []*EntryContent{}
-	test := "title\n=====\n  * item\n  *item"
-	fmt.Printf("%q %q\n", test, string(blackfriday.Run([]byte(test))))
-	for _, en := range in {
-		content := strings.ReplaceAll(en.Content, "\r\n", "\n")
+func toDisplay(in *entries.Entry) *EntryContent {
+	content := strings.ReplaceAll(in.Content, "\r\n", "\n")
+	return &EntryContent{
+		Title:   in.Title,
+		Content: template.HTML(blackfriday.Run([]byte(content))),
+		ID:      in.ID,
+		Created: in.Created,
+	}
+}
 
-		fmt.Printf("%q %q\n", en.Content, string(blackfriday.Run([]byte(content))))
-		ret = append(ret, &EntryContent{
-			Title:   en.Title,
-			Content: template.HTML(blackfriday.Run([]byte(content))),
-			ID:      en.ID,
-			Created: en.Created,
-		})
+func toDisplaySlice(in []*entries.Entry) []*EntryContent {
+	ret := []*EntryContent{}
+	for _, en := range in {
+		ret = append(ret, toDisplay(en))
 	}
 	return ret
 }
@@ -177,6 +231,33 @@ func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to insert", http.StatusInternalServerError)
 	}
 	http.Redirect(w, r, "/admin", 302)
+}
+
+type EditContext struct {
+	Raw    *entries.Entry
+	Cooked *EntryContent
+}
+
+// adminEditHandler displays the admin page for Stream.
+func adminEditHandler(w http.ResponseWriter, r *http.Request) {
+	if !admin.IsAdmin(r, log) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+	id := vars["id"]
+	raw, err := entryDB.Get(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	c := EditContext{
+		Raw:    raw,
+		Cooked: toDisplay(raw),
+	}
+	if err := adminEditTemplate.Execute(w, c); err != nil {
+		log.Errorf("Failed to render admin template: %s", err)
+	}
 }
 
 func main() {
@@ -201,6 +282,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/new", adminNewHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/admin/edit/{id}", adminEditHandler).Methods("GET", "POST", "OPTIONS")
 	r.HandleFunc("/admin", adminHandler).Methods("GET", "OPTIONS")
 
 	http.Handle("/", r)
