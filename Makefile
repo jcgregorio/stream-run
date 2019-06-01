@@ -4,7 +4,7 @@ build-app:
 	go install ./stream.go
 
 run:
-	go run ./stream.go
+	go run ./stream.go -- --local
 
 release:
 	CGO_ENABLED=0 GOOS=linux go install -a ./stream.go

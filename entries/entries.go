@@ -68,15 +68,10 @@ func (e *Entries) Insert(ctx context.Context, content, title string) (string, er
 	return key.Name, err
 }
 
-func (e *Entries) Update(ctx context.Context, id, content, title string) error {
+func (e *Entries) Update(ctx context.Context, entry *Entry) error {
 	key := e.DS.NewKey(ENTRY)
-	key.Name = id
+	key.Name = entry.ID
 
-	entry := &Entry{
-		Content: content,
-		Title:   title,
-		Created: time.Now(),
-	}
 	_, err := e.DS.Client.Put(context.Background(), key, entry)
 	return err
 }

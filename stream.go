@@ -144,6 +144,9 @@ func toDisplaySlice(in []*entries.Entry) []*EntryContent {
 
 // adminNewHandler displays the admin page for Stream.
 func adminNewHandler(w http.ResponseWriter, r *http.Request) {
+	if *local {
+		loadTemplates()
+	}
 	if !admin.IsAdmin(r, log) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -163,6 +166,9 @@ type EditContext struct {
 
 // adminEditHandler displays the admin page for Stream.
 func adminEditHandler(w http.ResponseWriter, r *http.Request) {
+	if *local {
+		loadTemplates()
+	}
 	if !admin.IsAdmin(r, log) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -173,6 +179,14 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.NotFound(w, r)
 		return
+	}
+	if r.Method == "POST" {
+		raw.Title = r.FormValue("title")
+		raw.Content = r.FormValue("content")
+		if err := entryDB.Update(r.Context(), raw); err != nil {
+			http.Error(w, "Failed to write.", http.StatusInternalServerError)
+			return
+		}
 	}
 	c := EditContext{
 		Raw:    raw,
