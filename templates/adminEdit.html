@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=egde,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style type="text/css" media="screen">
+		  .created {
+			  float: right;
+			}
+			.entry {
+			  margin: 1em;
+				padding: 1em;
+				background: #eee;
+			}
+		</style>
+</head>
+<body>
+  {{with .Cooked}}
+	<div class=entry>
+		<h2>{{ .Title }}</h2>
+		<div>
+			<span class=created>{{ .Created | humanTime }}</span>
+			{{ .Content }}
+		</div>
+	</div>
+	{{end}}
+	<hr>
+	{{with .Raw}}
+	<div>
+		<form action="/admin/edit/{{ .ID }}" method="post" accept-charset="utf-8">
+		  <p><input type="text" name="title" value="{{ .Title }}"></p>
+      <textarea name="content" rows="8" cols="80">{{ .Content }}</textarea>
+			<p><input type="submit" value="Update"></p>
+		</form>
+	</div>
+	{{end}}
+</body>
+</html>

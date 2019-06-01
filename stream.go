@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"html/template"
 	"net/http"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -19,133 +21,51 @@ import (
 	"github.com/jcgregorio/stream-run/entries"
 )
 
+// flags
+var (
+	local        = flag.Bool("local", false, "Running locally if true. As opposed to in production.")
+	resourcesDir = flag.String("resources_dir", "", "The directory to find templates, JS, and CSS files. If blank the current directory will be used.")
+)
+
 var (
 	entryDB *entries.Entries
 
+	templates *template.Template
+
 	log = logger.New()
-
-	adminTemplate = template.Must(template.New("admin").Funcs(template.FuncMap{
-		"trunc": func(s string) string {
-			if len(s) > 80 {
-				return s[:80] + "..."
-			}
-			return s
-		},
-		"humanTime": func(t time.Time) string {
-			if t.IsZero() {
-				return ""
-			}
-			return " • " + units.HumanDuration(time.Now().Sub(t)) + " ago"
-		},
-	}).Parse(fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <title></title>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=egde,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-signin-scope" content="profile email">
-    <meta name="google-signin-client_id" content="%s">
-    <script src="https://apis.google.com/js/platform.js" async defer></script>
-		<style type="text/css" media="screen">
-		  .created {
-			  float: right;
-			}
-			.entry {
-			  margin: 1em;
-				padding: 1em;
-				background: #eee;
-			}
-		</style>
-</head>
-<body>
-  <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
-    <script>
-      function onSignIn(googleUser) {
-        document.cookie = "id_token=" + googleUser.getAuthResponse().id_token;
-        if (!{{.IsAdmin}}) {
-          window.location.reload();
-        }
-      };
-    </script>
-	<div><a href="?offset={{.Offset}}">Next</a></div>
-  {{range .Entries}}
-		<div class=entry>
-			<h2>{{ .Title }}</h2>
-			<div>
-        <span class=created>{{ .Created | humanTime }}</span>
-				{{ .Content }}
-			</div>
-			<a href="/admin/edit/{{ .ID }}">Edit</a>
-		</div>
-  {{end}}
-	<hr>
-	<div>
-		<form action="/admin/new" method="post" accept-charset="utf-8">
-		  <p><input type="text" name="title" value=""></p>
-      <textarea name="content" rows="8" cols="80"></textarea>
-			<p><input type="submit" value="Insert"></p>
-		</form>
-	</div>
-</body>
-</html>`, config.CLIENT_ID)))
-
-	adminEditTemplate = template.Must(template.New("adminEdit").Funcs(template.FuncMap{
-		"trunc": func(s string) string {
-			if len(s) > 80 {
-				return s[:80] + "..."
-			}
-			return s
-		},
-		"humanTime": func(t time.Time) string {
-			if t.IsZero() {
-				return ""
-			}
-			return " • " + units.HumanDuration(time.Now().Sub(t)) + " ago"
-		},
-	}).Parse(`<!DOCTYPE html>
-<html>
-<head>
-    <title></title>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=egde,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<style type="text/css" media="screen">
-		  .created {
-			  float: right;
-			}
-			.entry {
-			  margin: 1em;
-				padding: 1em;
-				background: #eee;
-			}
-		</style>
-</head>
-<body>
-  {{with .Cooked}}
-	<div class=entry>
-		<h2>{{ .Title }}</h2>
-		<div>
-			<span class=created>{{ .Created | humanTime }}</span>
-			{{ .Content }}
-		</div>
-	</div>
-	{{end}}
-	<hr>
-	{{with .Raw}}
-	<div>
-		<form action="/admin/edit/{{ .ID }}" method="post" accept-charset="utf-8">
-		  <p><input type="text" name="title" value="{{ .Title }}"></p>
-      <textarea name="content" rows="8" cols="80">{{ .Content }}</textarea>
-			<p><input type="submit" value="Update"></p>
-		</form>
-	</div>
-	{{end}}
-</body>
-</html>`))
 )
 
+func loadTemplates() {
+	// pattern is the glob pattern used to find all the template files.
+	pattern := filepath.Join(*resourcesDir, "*.html")
+
+	templates = template.New("")
+	templates.Funcs(template.FuncMap{
+		"trunc": func(s string) string {
+			if len(s) > 80 {
+				return s[:80] + "..."
+			}
+			return s
+		},
+		"humanTime": func(t time.Time) string {
+			if t.IsZero() {
+				return ""
+			}
+			return " • " + units.HumanDuration(time.Now().Sub(t)) + " ago"
+		},
+	})
+	template.Must(templates.ParseGlob(pattern))
+}
+
 func initialize() {
+	flag.Parse()
+
+	if *resourcesDir == "" {
+		_, filename, _, _ := runtime.Caller(0)
+		*resourcesDir = filepath.Join(filepath.Dir(filename), "templates")
+	}
+	loadTemplates()
+
 	var err error
 	entryDB, err = entries.New(context.Background(), config.PROJECT, config.DATASTORE_NAMESPACE, log)
 	if err != nil {
@@ -156,9 +76,10 @@ func initialize() {
 }
 
 type adminContext struct {
-	IsAdmin bool
-	Entries []*EntryContent
-	Offset  int
+	IsAdmin  bool
+	Entries  []*EntryContent
+	Offset   int
+	ClientID string
 }
 
 type EntryContent struct {
@@ -182,6 +103,10 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	context := &adminContext{}
 	isAdmin := admin.IsAdmin(r, log)
+	context = &adminContext{
+		IsAdmin:  false,
+		ClientID: config.CLIENT_ID,
+	}
 	if isAdmin {
 		limit := parseWithDefault(r.FormValue("limit"), 20)
 		offset := parseWithDefault(r.FormValue("offset"), 0)
@@ -190,13 +115,11 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 			log.Warningf("Failed to get entries: %s", err)
 			return
 		}
-		context = &adminContext{
-			IsAdmin: isAdmin,
-			Entries: toDisplaySlice(entries),
-			Offset:  int(offset + limit),
-		}
+		context.IsAdmin = true
+		context.Entries = toDisplaySlice(entries)
+		context.Offset = int(offset + limit)
 	}
-	if err := adminTemplate.Execute(w, context); err != nil {
+	if err := templates.ExecuteTemplate(w, "admin.html", context); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
 	}
 }
@@ -255,7 +178,7 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 		Raw:    raw,
 		Cooked: toDisplay(raw),
 	}
-	if err := adminEditTemplate.Execute(w, c); err != nil {
+	if err := templates.ExecuteTemplate(w, "adminEdit.html", c); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
 	}
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=egde,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-signin-scope" content="profile email">
+    <meta name="google-signin-client_id" content="{{.ClientID}}">
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+		<style type="text/css" media="screen">
+		  .created {
+			  float: right;
+			}
+			.entry {
+			  margin: 1em;
+				padding: 1em;
+				background: #eee;
+			}
+		</style>
+</head>
+<body>
+  <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
+    <script>
+      function onSignIn(googleUser) {
+        document.cookie = "id_token=" + googleUser.getAuthResponse().id_token;
+        if (!{{.IsAdmin}}) {
+          window.location.reload();
+        }
+      };
+    </script>
+	<div><a href="?offset={{.Offset}}">Next</a></div>
+  {{range .Entries}}
+		<div class=entry>
+			<h2>{{ .Title }}</h2>
+			<div>
+        <span class=created>{{ .Created | humanTime }}</span>
+				{{ .Content }}
+			</div>
+			<a href="/admin/edit/{{ .ID }}">Edit</a>
+		</div>
+  {{end}}
+	<hr>
+	<div>
+		<form action="/admin/new" method="post" accept-charset="utf-8">
+		  <p><input type="text" name="title" value=""></p>
+      <textarea name="content" rows="8" cols="80"></textarea>
+			<p><input type="submit" value="Insert"></p>
+		</form>
+	</div>
+</body>
+</html>
