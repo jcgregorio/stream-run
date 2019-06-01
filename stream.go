@@ -104,7 +104,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	context := &adminContext{}
 	isAdmin := admin.IsAdmin(r, log)
 	context = &adminContext{
-		IsAdmin:  false,
+		IsAdmin:  isAdmin,
 		ClientID: config.CLIENT_ID,
 	}
 	if isAdmin {
@@ -115,12 +115,35 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 			log.Warningf("Failed to get entries: %s", err)
 			return
 		}
-		context.IsAdmin = true
 		context.Entries = toDisplaySlice(entries)
 		context.Offset = int(offset + limit)
 	}
 	if err := templates.ExecuteTemplate(w, "admin.html", context); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
+	}
+}
+
+type indexContext struct {
+	Entries []*EntryContent
+	Offset  int
+}
+
+// indexHandler displays the admin page for Stream.
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	limit := parseWithDefault(r.FormValue("limit"), 20)
+	offset := parseWithDefault(r.FormValue("offset"), 0)
+	entries, err := entryDB.List(r.Context(), int(limit), int(offset))
+	if err != nil {
+		log.Warningf("Failed to get entries: %s", err)
+		return
+	}
+	context := &adminContext{
+		Entries: toDisplaySlice(entries),
+		Offset:  int(offset + limit),
+	}
+	if err := templates.ExecuteTemplate(w, "index.html", context); err != nil {
+		log.Errorf("Failed to render index template: %s", err)
 	}
 }
 
@@ -223,17 +246,18 @@ func main() {
 				            - POST to create.
 		    /admin/entry/<id>
 				            - GET to view and edit.
-							      - PUT to update.
-							      - DELETE to delete.
+							      - POST action=update to update.
+							      - POST action=delete to delete.
 		    /admin/rollup
 				            - A formatted post of the last N entries, used to create a rollup blog entry.
 
 	*/
 
 	r := mux.NewRouter()
-	r.HandleFunc("/admin/new", adminNewHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/admin/edit/{id}", adminEditHandler).Methods("GET", "POST", "OPTIONS")
-	r.HandleFunc("/admin", adminHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/admin/new", adminNewHandler).Methods("POST")
+	r.HandleFunc("/admin/edit/{id}", adminEditHandler).Methods("GET", "POST")
+	r.HandleFunc("/admin", adminHandler).Methods("GET")
+	r.HandleFunc("/", indexHandler).Methods("GET")
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":"+config.PORT, nil))
