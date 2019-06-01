@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <link href="{{.HOST}}/feed/" rel="self" type="application/atom+xml" />
+  <link href="{{.HOST}}/" rel="alternate" type="text/html" />
+  <updated>{{.Updated}}</updated>
+  <id>{{.HOST}}/feed/</id>
+  <title>Stream</title>
+  {{range .Entries}}
+    <entry>
+      <title type="html">OpenID Connect for US Citizens</title>
+      <link href="{{.HOST}}/entry/{{.ID}}" rel="alternate" type="text/html" title="{{.Title}}" />
+      <published>{{.Created}}</published>
+      <updated>{{.Updated}}</updated>
+      <id>{{.ID}}</id>
+      <content type="html">
+          {{.Content}}
+      </content>
+      <author>
+        <name>Joe Gregorio</name>
+      </author>
+    </entry>
+  {{end}}
+</feed>

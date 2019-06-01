@@ -37,7 +37,7 @@ var (
 
 func loadTemplates() {
 	// pattern is the glob pattern used to find all the template files.
-	pattern := filepath.Join(*resourcesDir, "*.html")
+	pattern := filepath.Join(*resourcesDir, "*.*ml")
 
 	templates = template.New("")
 	templates.Funcs(template.FuncMap{
