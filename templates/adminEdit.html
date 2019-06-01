@@ -17,6 +17,7 @@
 		</style>
 </head>
 <body>
+  <a href="/admin">Admin</a>
   {{with .Cooked}}
 	<div class=entry>
 		<h2>{{ .Title }}</h2>
@@ -32,7 +33,12 @@
 		<form action="/admin/edit/{{ .ID }}" method="post" accept-charset="utf-8">
 		  <p><input type="text" name="title" value="{{ .Title }}"></p>
       <textarea name="content" rows="8" cols="80">{{ .Content }}</textarea>
+      <input type="hidden" name="action" value="update">
 			<p><input type="submit" value="Update"></p>
+		</form>
+		<form action="/admin/edit/{{ .ID }}" method="post" accept-charset="utf-8">
+      <input type="hidden" name="action" value="delete">
+			<p><input type="submit" value="Delete"></p>
 		</form>
 	</div>
 	{{end}}

@@ -181,10 +181,23 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		raw.Title = r.FormValue("title")
-		raw.Content = r.FormValue("content")
-		if err := entryDB.Update(r.Context(), raw); err != nil {
-			http.Error(w, "Failed to write.", http.StatusInternalServerError)
+		switch r.FormValue("action") {
+		case "update":
+			raw.Title = r.FormValue("title")
+			raw.Content = r.FormValue("content")
+			if err := entryDB.Update(r.Context(), raw); err != nil {
+				http.Error(w, "Failed to write.", http.StatusInternalServerError)
+				return
+			}
+		case "delete":
+			if err := entryDB.Delete(r.Context(), id); err != nil {
+				http.Error(w, "Failed to delete.", http.StatusInternalServerError)
+				return
+			}
+			http.Redirect(w, r, "/admin", 302)
+			return
+		default:
+			http.Error(w, "POST request failed to include action.", http.StatusBadRequest)
 			return
 		}
 	}
