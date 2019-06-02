@@ -36,8 +36,7 @@ var (
 )
 
 func loadTemplates() {
-	// pattern is the glob pattern used to find all the template files.
-	pattern := filepath.Join(*resourcesDir, "*.*ml")
+	pattern := filepath.Join(*resourcesDir, "*.*")
 
 	templates = template.New("")
 	templates.Funcs(template.FuncMap{
@@ -80,12 +79,12 @@ func initialize() {
 
 type adminContext struct {
 	IsAdmin  bool
-	Entries  []*EntryContent
+	Entries  []*entryContent
 	Offset   int
 	ClientID string
 }
 
-type EntryContent struct {
+type entryContent struct {
 	Title       string
 	Content     template.HTML
 	SafeContent string
@@ -129,7 +128,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type indexContext struct {
-	Entries []*EntryContent
+	Entries []*entryContent
 	Offset  int
 }
 
@@ -155,7 +154,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 type feedContext struct {
 	Updated time.Time
 	Host    string
-	Entries []*EntryContent
+	Entries []*entryContent
 	Author  string
 }
 
@@ -184,10 +183,11 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func toDisplay(in *entries.Entry) *EntryContent {
+// toDisplay converts an entries.Entry into an entryContent.
+func toDisplay(in *entries.Entry) *entryContent {
 	content := strings.ReplaceAll(in.Content, "\r\n", "\n")
 	content = string(blackfriday.Run([]byte(content)))
-	return &EntryContent{
+	return &entryContent{
 		Title:       in.Title,
 		Content:     template.HTML(content),
 		SafeContent: content,
@@ -197,8 +197,8 @@ func toDisplay(in *entries.Entry) *EntryContent {
 	}
 }
 
-func toDisplaySlice(in []*entries.Entry) []*EntryContent {
-	ret := []*EntryContent{}
+func toDisplaySlice(in []*entries.Entry) []*entryContent {
+	ret := []*entryContent{}
 	for _, en := range in {
 		ret = append(ret, toDisplay(en))
 	}
@@ -222,9 +222,9 @@ func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin", 302)
 }
 
-type EditContext struct {
+type editContext struct {
 	Raw    *entries.Entry
-	Cooked *EntryContent
+	Cooked *entryContent
 }
 
 // adminEditHandler displays the admin page for Stream.
@@ -264,7 +264,7 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	c := EditContext{
+	c := editContext{
 		Raw:    raw,
 		Cooked: toDisplay(raw),
 	}
@@ -294,18 +294,18 @@ func main() {
 	initialize()
 	/*
 
-				/           - Root, displays the last 10 stream entries. Link to feed.
-				              Link to admin page. Link to rollup page. Links to entry permalinks.
-				/entry/<id> - Permalink for each entry.
-				/feed       - Atom feed of last 10 stream entries.
-				/admin      - Must be logged in and admin to access. Allows creating/editing/deleting stream entries.
-		    /admin/entry
+			/            - Root, displays the last 10 stream entries. Link to feed.
+				             Link to admin page. Link to rollup page. Links to entry permalinks.
+			/entry/<id>  - Permalink for each entry.
+			/feed        - Atom feed of last 10 stream entries.
+			/admin       - Must be logged in and admin to access. Allows creating/editing/deleting stream entries.
+		  /admin/entry
 				            - POST to create.
-		    /admin/entry/<id>
+		  /admin/entry/<id>
 				            - GET to view and edit.
 							      - POST action=update to update.
 							      - POST action=delete to delete.
-		    /admin/rollup
+		  /admin/rollup
 				            - A formatted post of the last N entries, used to create a rollup blog entry.
 
 	*/

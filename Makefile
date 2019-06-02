@@ -7,10 +7,11 @@ run:
 	go run ./stream.go -- --local
 
 release:
-	CGO_ENABLED=0 GOOS=linux go install -a ./stream.go
+	-rm -rf ./build/*
 	mkdir -p ./build
-	rm -rf ./build/*
-	cp $(GOPATH)/bin/stream ./build
+	GOBIN=`pwd`/build CGO_ENABLED=0 GOOS=linux go install -a .
+	install -d  ./build/usr/local/stream-run/
+	install -D ./templates/* ./build/usr/local/stream-run/
 	cp Dockerfile ./build
 	docker build ./build --tag stream --tag gcr.io/$(PROJECT)/stream
 	docker push gcr.io/$(PROJECT)/stream
