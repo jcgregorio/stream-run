@@ -273,6 +273,23 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// entryHandler displays the admin page for Stream.
+func entryHandler(w http.ResponseWriter, r *http.Request) {
+	if *local {
+		loadTemplates()
+	}
+	vars := mux.Vars(r)
+	id := vars["id"]
+	raw, err := entryDB.Get(r.Context(), id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := templates.ExecuteTemplate(w, "entry.html", toDisplay(raw)); err != nil {
+		log.Errorf("Failed to render entry template: %s", err)
+	}
+}
+
 func main() {
 	initialize()
 	/*
@@ -299,6 +316,7 @@ func main() {
 	r.HandleFunc("/admin", adminHandler).Methods("GET")
 	r.HandleFunc("/feed", feedHandler).Methods("GET")
 	r.HandleFunc("/", indexHandler).Methods("GET")
+	r.HandleFunc("/entry/{id}", entryHandler).Methods("GET")
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":"+config.PORT, nil))

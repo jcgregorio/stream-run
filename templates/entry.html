@@ -17,15 +17,11 @@
 		</style>
 </head>
 <body>
-	<div><a href="?offset={{.Offset}}">Next</a></div>
-  {{range .Entries}}
-		<div class=entry>
-      <h2><a href="/entry/{{.ID}}">{{ .Title }}</a></h2>
-			<div>
-				{{ .Content }}
-        <span class=created>{{ .Created | humanTime }}</span>
-			</div>
-		</div>
-  {{end}}
+  <a href="/">Home</a>
+  <h2>{{ .Title }}</h2>
+  <div>
+    {{ .Content }}
+    <span class=created>{{ .Created | humanTime }}</span>
+  </div>
 </body>
 </html>
