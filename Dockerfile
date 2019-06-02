@@ -8,4 +8,4 @@ USER bitworking:bitworking
 
 COPY . /
 
-ENTRYPOINT ["/stream-run", "--resources_dir=/usr/local/stream-run/templates"]
+ENTRYPOINT ["/stream-run", "--resources_dir=/usr/local/stream-run/"]
