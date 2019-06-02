@@ -1,4 +1,7 @@
 SHELL=/bin/bash
+PROJECT=`jq -r .PROJECT config.json`
+REGION=`jq -r .REGION config.json`
+
 build-app:
 	go install ./stream.go
 
