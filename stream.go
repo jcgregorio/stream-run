@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -22,7 +23,7 @@ import (
 	"github.com/jcgregorio/stream-run/entries"
 )
 
-// Environment variables we will use as configuration.
+// Config keys as found in config.json.
 const (
 	DATASTORE_NAMESPACE = "DATASTORE_NAMESPACE"
 	CLIENT_ID           = "CLIENT_ID"
@@ -30,7 +31,6 @@ const (
 	PROJECT             = "PROJECT"
 	ADMINS              = "ADMINS"
 	HOST                = "HOST"
-	PORT                = "PORT"
 	AUTHOR              = "AUTHOR"
 )
 
@@ -46,10 +46,12 @@ var (
 	templates *template.Template
 
 	log = logger.New()
+
+	ad *admin.Admin
 )
 
 func loadTemplates() {
-	pattern := filepath.Join(*resourcesDir, "*.*")
+	pattern := filepath.Join(*resourcesDir, "templates", "*.*")
 
 	templates = template.New("")
 	templates.Funcs(template.FuncMap{
@@ -74,20 +76,18 @@ func loadTemplates() {
 
 func initialize() {
 	flag.Parse()
-	// Look in config.mk for all of the config values and their defaults.
-	viper.SetDefault(DATASTORE_NAMESPACE, "")
-	viper.SetDefault(CLIENT_ID, "")
-	viper.SetDefault(REGION, "")
-	viper.SetDefault(PROJECT, "")
-	viper.SetDefault(ADMINS, "")
-	viper.SetDefault(HOST, "")
-	viper.SetDefault(PORT, "")
-	viper.SetDefault(AUTHOR, "")
-	viper.AutomaticEnv()
+	viper.SetConfigType("json")
+	viper.SetConfigFile("config.json")
 	if *resourcesDir == "" {
 		_, filename, _, _ := runtime.Caller(0)
-		*resourcesDir = filepath.Join(filepath.Dir(filename), "templates")
+		*resourcesDir = filepath.Join(filepath.Dir(filename))
 	}
+	viper.AddConfigPath(*resourcesDir)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal(err)
+	}
+
+	ad = admin.New(viper.GetString(CLIENT_ID), viper.GetStringSlice(ADMINS))
 	loadTemplates()
 
 	var err error
@@ -128,7 +128,7 @@ func parseWithDefault(s string, defaultValue int) int {
 func adminHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	context := &adminContext{}
-	isAdmin := admin.IsAdmin(r, log)
+	isAdmin := ad.IsAdmin(r, log)
 	context = &adminContext{
 		IsAdmin: isAdmin,
 		Config:  viper.AllSettings(),
@@ -235,7 +235,7 @@ func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 	if *local {
 		loadTemplates()
 	}
-	if !admin.IsAdmin(r, log) {
+	if !ad.IsAdmin(r, log) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -257,7 +257,7 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 	if *local {
 		loadTemplates()
 	}
-	if !admin.IsAdmin(r, log) {
+	if !ad.IsAdmin(r, log) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -344,5 +344,9 @@ func main() {
 	r.HandleFunc("/entry/{id}", entryHandler).Methods("GET")
 
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":"+viper.GetString(PORT), nil))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "1313"
+	}
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

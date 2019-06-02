@@ -1,5 +1,4 @@
 SHELL=/bin/bash
-include ./config.mk
 build-app:
 	go install ./stream.go
 
@@ -10,8 +9,9 @@ release:
 	-rm -rf ./build/*
 	mkdir -p ./build
 	GOBIN=`pwd`/build CGO_ENABLED=0 GOOS=linux go install -a .
-	install -d  ./build/usr/local/stream-run/
-	install -D ./templates/* ./build/usr/local/stream-run/
+	install -d  ./build/usr/local/stream-run/templates
+	install ./templates/* ./build/usr/local/stream-run/templates
+	install ./config.json ./build/usr/local/stream-run/config.json
 	cp Dockerfile ./build
 	docker build ./build --tag stream --tag gcr.io/$(PROJECT)/stream
 	docker push gcr.io/$(PROJECT)/stream
@@ -19,8 +19,7 @@ release:
 push:
 	gcloud beta run deploy stream \
 	   --allow-unauthenticated --region $(REGION) \
-		 --image gcr.io/$(PROJECT)/stream \
-		 --set-env-vars "$(shell cat config.mk | sed 's#export ##' | grep -v "^PORT=" | tr '\n' ',')"
+		 --image gcr.io/$(PROJECT)/stream
 
 start_datastore_emulator:
 	 echo To attach run:
