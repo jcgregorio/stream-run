@@ -1,13 +1,13 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <link href="{{.Host}}/feed" rel="self" type="application/atom+xml" />
-  <link href="{{.Host}}/" rel="alternate" type="text/html" />
+  <link href="{{.Config.host}}/feed" rel="self" type="application/atom+xml" />
+  <link href="{{.Config.host}}/" rel="alternate" type="text/html" />
   <updated>{{.Updated | atomTime}}</updated>
-  <id>{{.Host}}/feed/</id>
+  <id>{{.Config.host}}/feed</id>
   <title>Stream</title>
   <author>
-    <name>{{.Author}}</name>
+    <name>{{.Config.author}}</name>
   </author>
-  {{$Host := .Host}}
+  {{$Host := .Config.host}}
   {{range .Entries}}
     <entry>
       <title type="html">OpenID Connect for US Citizens</title>

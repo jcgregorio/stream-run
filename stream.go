@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
@@ -13,12 +14,24 @@ import (
 
 	units "github.com/docker/go-units"
 	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 	blackfriday "gopkg.in/russross/blackfriday.v2"
 
 	"github.com/jcgregorio/go-lib/admin"
-	"github.com/jcgregorio/go-lib/config"
 	"github.com/jcgregorio/logger"
 	"github.com/jcgregorio/stream-run/entries"
+)
+
+// Environment variables we will use as configuration.
+const (
+	DATASTORE_NAMESPACE = "DATASTORE_NAMESPACE"
+	CLIENT_ID           = "CLIENT_ID"
+	REGION              = "REGION"
+	PROJECT             = "PROJECT"
+	ADMINS              = "ADMINS"
+	HOST                = "HOST"
+	PORT                = "PORT"
+	AUTHOR              = "AUTHOR"
 )
 
 // flags
@@ -61,7 +74,16 @@ func loadTemplates() {
 
 func initialize() {
 	flag.Parse()
-
+	// Look in config.mk for all of the config values and their defaults.
+	viper.SetDefault(DATASTORE_NAMESPACE, "")
+	viper.SetDefault(CLIENT_ID, "")
+	viper.SetDefault(REGION, "")
+	viper.SetDefault(PROJECT, "")
+	viper.SetDefault(ADMINS, "")
+	viper.SetDefault(HOST, "")
+	viper.SetDefault(PORT, "")
+	viper.SetDefault(AUTHOR, "")
+	viper.AutomaticEnv()
 	if *resourcesDir == "" {
 		_, filename, _, _ := runtime.Caller(0)
 		*resourcesDir = filepath.Join(filepath.Dir(filename), "templates")
@@ -69,7 +91,7 @@ func initialize() {
 	loadTemplates()
 
 	var err error
-	entryDB, err = entries.New(context.Background(), config.PROJECT, config.DATASTORE_NAMESPACE, log)
+	entryDB, err = entries.New(context.Background(), viper.GetString(PROJECT), viper.GetString(DATASTORE_NAMESPACE), log)
 	if err != nil {
 		log.Fatal(err)
 	} else {
@@ -78,10 +100,10 @@ func initialize() {
 }
 
 type adminContext struct {
-	IsAdmin  bool
-	Entries  []*entryContent
-	Offset   int
-	ClientID string
+	IsAdmin bool
+	Entries []*entryContent
+	Offset  int
+	Config  map[string]interface{}
 }
 
 type entryContent struct {
@@ -108,8 +130,8 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	context := &adminContext{}
 	isAdmin := admin.IsAdmin(r, log)
 	context = &adminContext{
-		IsAdmin:  isAdmin,
-		ClientID: config.CLIENT_ID,
+		IsAdmin: isAdmin,
+		Config:  viper.AllSettings(),
 	}
 	if isAdmin {
 		limit := parseWithDefault(r.FormValue("limit"), 20)
@@ -128,6 +150,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type indexContext struct {
+	Config  map[string]interface{}
 	Entries []*entryContent
 	Offset  int
 }
@@ -142,7 +165,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		log.Warningf("Failed to get entries: %s", err)
 		return
 	}
-	context := &adminContext{
+	fmt.Printf("%#v\n", viper.AllSettings())
+	context := &indexContext{
+		Config:  viper.AllSettings(),
 		Entries: toDisplaySlice(entries),
 		Offset:  int(offset + limit),
 	}
@@ -153,9 +178,10 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 type feedContext struct {
 	Updated time.Time
-	Host    string
 	Entries []*entryContent
+	Config  map[string]interface{}
 	Author  string
+	Host    string
 }
 
 // feedHandler displays the admin page for Stream.
@@ -173,8 +199,7 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	context := &feedContext{
-		Host:    config.HOST,
-		Author:  config.AUTHOR,
+		Config:  viper.AllSettings(),
 		Updated: updated,
 		Entries: toDisplaySlice(entries),
 	}
@@ -319,5 +344,5 @@ func main() {
 	r.HandleFunc("/entry/{id}", entryHandler).Methods("GET")
 
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":"+config.PORT, nil))
+	log.Fatal(http.ListenAndServe(":"+viper.GetString(PORT), nil))
 }
