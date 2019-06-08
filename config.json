@@ -1,11 +1,13 @@
 {
-  "CLIENT_ID":"952643138919-jh0117ivtbqkc9njoh91csm7s465c4na.apps.googleusercontent.com",
-  "REGION":"us-central1",
-  "PROJECT":"heroic-muse-88515",
-  "DATASTORE_NAMESPACE":"stream",
+  "CLIENT_ID": "952643138919-jh0117ivtbqkc9njoh91csm7s465c4na.apps.googleusercontent.com",
+  "REGION": "us-central1",
+  "PROJECT": "heroic-muse-88515",
+  "DATASTORE_NAMESPACE": "stream",
   "ADMINS":[
     "joe.gregorio@gmail.com"
   ],
-  "HOST":"https://stream.bitworking.org",
-  "AUTHOR":"Joe Gregorio"
+  "HOST": "https://stream.bitworking.org",
+  "AUTHOR": "Joe Gregorio",
+  "AUTHOR_URL": "https://bitworking.org/about",
+  "AUTHOR_IMAGE_URL": "https://bitworking.org/images/joe2016.jpg"
 }

@@ -65,7 +65,7 @@ func loadTemplates() {
 			if t.IsZero() {
 				return ""
 			}
-			return " • " + units.HumanDuration(time.Now().Sub(t)) + " ago"
+			return units.HumanDuration(time.Now().Sub(t)) + " ago"
 		},
 		"atomTime": func(t time.Time) string {
 			return t.Format(time.RFC3339)
@@ -306,7 +306,12 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// entryHandler displays the admin page for Stream.
+type entryContext struct {
+	Cooked *entryContent
+	Config map[string]interface{}
+}
+
+// entryHandler handles the permalink for an individual entry.
 func entryHandler(w http.ResponseWriter, r *http.Request) {
 	if *local {
 		loadTemplates()
@@ -318,7 +323,13 @@ func entryHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := templates.ExecuteTemplate(w, "entry.html", toDisplay(raw)); err != nil {
+
+	c := &entryContext{
+		Cooked: toDisplay(raw),
+		Config: viper.AllSettings(),
+	}
+
+	if err := templates.ExecuteTemplate(w, "entry.html", c); err != nil {
 		log.Errorf("Failed to render entry template: %s", err)
 	}
 }
