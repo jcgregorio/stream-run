@@ -5,7 +5,9 @@
   {{template "header.html"}}
 </head>
 <body>
-	<div><a href="?offset={{.Offset}}">Next</a></div>
+  {{if  ne .Offset -1}}
+    <div><a href="?offset={{.Offset}}">Next</a></div>
+  {{end}}
   {{range .Entries}}
 		<div class=entry>
       <h2><a href="/entry/{{.ID}}">{{ .Title }}</a></h2>
@@ -17,7 +19,7 @@
   {{end}}
   <hr>
   <p>
-    <a href="/admin">admin</a>
+    <a href="/admin">Admin</a>
   </p>
 </body>
 </html>

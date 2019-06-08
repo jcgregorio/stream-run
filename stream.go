@@ -143,6 +143,9 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		context.Entries = toDisplaySlice(entries)
 		context.Offset = int(offset + limit)
+		if len(entries) < limit {
+			context.Offset = -1
+		}
 	}
 	if err := templates.ExecuteTemplate(w, "admin.html", context); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
@@ -170,6 +173,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		Config:  viper.AllSettings(),
 		Entries: toDisplaySlice(entries),
 		Offset:  int(offset + limit),
+	}
+	if len(entries) < limit {
+		context.Offset = -1
 	}
 	if err := templates.ExecuteTemplate(w, "index.html", context); err != nil {
 		log.Errorf("Failed to render index template: %s", err)
