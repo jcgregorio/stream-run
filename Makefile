@@ -6,7 +6,7 @@ build-app:
 	go install ./stream.go
 
 run:
-	go run ./stream.go -- --local
+	go run ./stream.go --local
 
 release:
 	-rm -rf ./build/*

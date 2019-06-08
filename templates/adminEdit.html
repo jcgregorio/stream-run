@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Edit - {{ .Title }}</title>
+  <title>Edit - {{ .Cooked.Title }}</title>
   {{template "header.html"}}
 </head>
 <body>
-  <a href="/admin">Admin</a>
+  <nav>
+    <a href="/admin">Admin</a>
+    <a href="/">Home</a>
+  </nav>
   {{with .Cooked}}
 	<div class=entry>
 		<h2>{{ .Title }}</h2>

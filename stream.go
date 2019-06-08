@@ -230,7 +230,7 @@ func toDisplaySlice(in []*entries.Entry) []*entryContent {
 	return ret
 }
 
-// adminNewHandler displays the admin page for Stream.
+// adminNewHandler accepts POST'd form values to create a new entry.
 func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 	if *local {
 		loadTemplates()
@@ -250,6 +250,7 @@ func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 type editContext struct {
 	Raw    *entries.Entry
 	Cooked *entryContent
+	Config map[string]interface{}
 }
 
 // adminEditHandler displays the admin page for Stream.
@@ -292,6 +293,7 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 	c := editContext{
 		Raw:    raw,
 		Cooked: toDisplay(raw),
+		Config: viper.AllSettings(),
 	}
 	if err := templates.ExecuteTemplate(w, "adminEdit.html", c); err != nil {
 		log.Errorf("Failed to render admin template: %s", err)
