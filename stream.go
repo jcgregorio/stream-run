@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/jcgregorio/go-lib/admin"
 	"github.com/jcgregorio/logger"
 	"github.com/jcgregorio/stream-run/entries"
+	"willnorris.com/go/webmention"
 )
 
 // Config keys as found in config.json.
@@ -49,6 +51,10 @@ var (
 
 	ad *admin.Admin
 )
+
+func permalinkFromId(id string) string {
+	return fmt.Sprintf("%s/entry/%s", viper.GetString(HOST), id)
+}
 
 func loadTemplates() {
 	pattern := filepath.Join(*resourcesDir, "templates", "*.*")
@@ -222,10 +228,14 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func toDisplayContent(s string) string {
+	content := strings.ReplaceAll(s, "\r\n", "\n")
+	return string(blackfriday.Run([]byte(content)))
+}
+
 // toDisplay converts an entries.Entry into an entryContent.
 func toDisplay(in *entries.Entry) *entryContent {
-	content := strings.ReplaceAll(in.Content, "\r\n", "\n")
-	content = string(blackfriday.Run([]byte(content)))
+	content := toDisplayContent(in.Content)
 	return &entryContent{
 		Title:       in.Title,
 		Content:     template.HTML(content),
@@ -253,12 +263,45 @@ func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	_, err := entryDB.Insert(r.Context(), r.FormValue("content"), r.FormValue("title"))
+	content := r.FormValue("content")
+	id, err := entryDB.Insert(r.Context(), content, r.FormValue("title"))
+	if err := sendWebMentions(id, toDisplayContent(content)); err != nil {
+		log.Warningf("Failed to send webmentions: %s", err)
+	}
 	if err != nil {
 		log.Errorf("Failed to insert: %s", err)
 		http.Error(w, "Failed to insert", http.StatusInternalServerError)
 	}
 	http.Redirect(w, r, "/admin", 302)
+}
+
+func sendWebMentions(id, content string) error {
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
+	source := permalinkFromId(id)
+	m := webmention.New(client)
+	buf := bytes.NewBufferString(content)
+	links, err := webmention.DiscoverLinksFromReader(buf, source, "")
+	if err != nil {
+		return fmt.Errorf("Failed to discover links in %q: %s", content, err)
+	}
+	for _, link := range links {
+		endpoint, err := m.DiscoverEndpoint(link)
+		if err != nil {
+			return err
+		}
+		resp, err := m.SendWebmention(endpoint, source, link)
+		if err != nil {
+			log.Infof("Failed to send webmention: %s", err)
+		}
+		if resp.StatusCode >= 400 {
+			log.Infof("Failed to send webmention: Status code %d:%s: %s", resp.StatusCode, resp.Status, err)
+		}
+		log.Infof("Webmention sent: %q -> %q", source, link)
+	}
+
+	return nil
 }
 
 type editContext struct {
@@ -291,6 +334,10 @@ func adminEditHandler(w http.ResponseWriter, r *http.Request) {
 			if err := entryDB.Update(r.Context(), raw); err != nil {
 				http.Error(w, "Failed to write.", http.StatusInternalServerError)
 				return
+			}
+			cooked := toDisplay(raw)
+			if err := sendWebMentions(id, cooked.SafeContent); err != nil {
+				log.Warningf("Failed to send webmentions: %s", err)
 			}
 		case "delete":
 			if err := entryDB.Delete(r.Context(), id); err != nil {
