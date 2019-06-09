@@ -2,7 +2,16 @@
 <html>
 <head>
   <title>{{ .Cooked.Title }}</title>
-  {{template "header.html"}}
+  {{template "header.html" .}}
+  <link rel="canonical" href="{{ .Config.host }}">
+  <link rel="author" href="{{ .Config.author_url }}">
+  <link href="https://webmention.bitworking.org/IncomingWebMention" rel="webmention" />
+  <meta name="twitter:site"    content="@{{ .Config.twitter }}">
+  <meta name="twitter:creator" content="@{{ .Config.twitter }}">
+  <meta name="twitter:title"   content="{{ .Cooked.Title }}">
+  <meta name="twitter:description" content="{{ .Cooked.Content }}">
+  <meta name="twitter:card"  content="summary">
+  <meta name="twitter:image" content="{{ .Config.logo_url }}">
 </head>
 <body>
   <nav>
@@ -46,5 +55,6 @@
 		</article>
 	</main>
 
+  {{template "footer.html" .}}
 </body>
 </html>

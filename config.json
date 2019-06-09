@@ -8,6 +8,9 @@
   ],
   "HOST": "https://stream.bitworking.org",
   "AUTHOR": "Joe Gregorio",
+  "AUTHOR_DESC": "REST, Web, Python, Go, APIs, Dad, Husband, Maker, or any linear combination of such. Googler.Joe Gregorio",
   "AUTHOR_URL": "https://bitworking.org/about",
-  "AUTHOR_IMAGE_URL": "https://bitworking.org/images/joe2016.jpg"
+  "AUTHOR_IMAGE_URL": "https://bitworking.org/images/joe2016.jpg",
+  "TWITTER": "bitworking",
+  "LOGO_URL": "https://bitworking.org/images/newlogo.png"
 }

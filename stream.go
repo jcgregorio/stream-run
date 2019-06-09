@@ -77,11 +77,20 @@ func loadTemplates() {
 func initialize() {
 	flag.Parse()
 	viper.SetConfigType("json")
-	viper.SetConfigFile("config.json")
 	if *resourcesDir == "" {
 		_, filename, _, _ := runtime.Caller(0)
 		*resourcesDir = filepath.Join(filepath.Dir(filename))
 	}
+
+	f, err := os.Open(filepath.Join(*resourcesDir, "config.json"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	if err := viper.ReadConfig(f); err != nil {
+		log.Fatal(err)
+	}
+
 	viper.AddConfigPath(*resourcesDir)
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal(err)
@@ -90,7 +99,6 @@ func initialize() {
 	ad = admin.New(viper.GetString(CLIENT_ID), viper.GetStringSlice(ADMINS))
 	loadTemplates()
 
-	var err error
 	entryDB, err = entries.New(context.Background(), viper.GetString(PROJECT), viper.GetString(DATASTORE_NAMESPACE), log)
 	if err != nil {
 		log.Fatal(err)
