@@ -1,6 +1,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <link href="{{.Config.host}}/feed" rel="self" type="application/atom+xml" />
-  <link href="{{.Config.host}}/" rel="alternate" type="text/html" />
+  <link rel="self" href="{{.Config.host}}/feed" type="application/atom+xml" />
+  <link rel="alternate" href="{{.Config.host}}/" type="text/html" />
+  <link rel="hub" href="{{.Config.websub}}">
   <updated>{{.Updated | atomTime}}</updated>
   <id>{{.Config.host}}/feed</id>
   <title>Stream</title>

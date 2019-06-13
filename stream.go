@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -34,6 +35,7 @@ const (
 	ADMINS              = "ADMINS"
 	HOST                = "HOST"
 	AUTHOR              = "AUTHOR"
+	WEBSUB              = "WEBSUB"
 )
 
 // flags
@@ -300,6 +302,15 @@ func sendWebMentions(id, content string) error {
 		}
 		log.Infof("Webmention sent: %q -> %q", source, link)
 	}
+	websubUrl := viper.GetString(WEBSUB)
+	resp, err := client.PostForm(websubUrl, url.Values{
+		"hub.mode": {"publish"},
+		"hub.url":  {fmt.Sprintf("%s/feed", viper.GetString(HOST))},
+	})
+	if err != nil {
+		log.Errorf("Failed to update websub hub: %q: %s", websubUrl, err)
+	}
+	log.Infof("WebSub response: %d - %q", resp.StatusCode, resp.Status)
 
 	return nil
 }
