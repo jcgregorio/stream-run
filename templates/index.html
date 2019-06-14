@@ -3,6 +3,7 @@
 <head>
   <title>{{.Config.author}} - Stream</title>
   {{template "header.html"}}
+   <link rel="manifest" href="/manifest.json">
 </head>
 <body>
   {{if  ne .Offset -1}}
@@ -22,5 +23,14 @@
     <a href="/admin">Admin</a>
   </p>
   {{template "footer.html" .}}
+  <script type="text/javascript" charset="utf-8">
+    // Check that service workers are registered
+    if ('serviceWorker' in navigator) {
+        // Use the window load event to keep the page load performant
+        window.addEventListener('load', () => {
+              navigator.serviceWorker.register('/service-worker.js');
+            });
+    }
+  </script>
 </body>
 </html>

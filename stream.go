@@ -400,6 +400,49 @@ func entryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// serviceWorkerHandler handles the permalink for an individual entry.
+func serviceWorkerHandler(w http.ResponseWriter, r *http.Request) {
+	if *local {
+		loadTemplates()
+	}
+	w.Header().Set("Content-Type", "text/javascript")
+	if err := templates.ExecuteTemplate(w, "service-worker.js", nil); err != nil {
+		log.Errorf("Failed to render service-worker.js: %s", err)
+	}
+}
+
+// manifestHandler handles the permalink for an individual entry.
+func manifestHandler(w http.ResponseWriter, r *http.Request) {
+	if *local {
+		loadTemplates()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := templates.ExecuteTemplate(w, "manifest.json", nil); err != nil {
+		log.Errorf("Failed to render manifest.json: %s", err)
+	}
+}
+
+// offlineHandler handles the permalink for an individual entry.
+func offlineHandler(w http.ResponseWriter, r *http.Request) {
+	if *local {
+		loadTemplates()
+	}
+	w.Header().Set("Content-Type", "text/html")
+	if err := templates.ExecuteTemplate(w, "offline.html", nil); err != nil {
+		log.Errorf("Failed to render service-worker.js: %s", err)
+	}
+}
+
+func makeImagesHandler() func(http.ResponseWriter, *http.Request) {
+	fileServer := http.FileServer(http.Dir(filepath.Join(*resourcesDir, "images")))
+	fmt.Println(*resourcesDir)
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "max-age=300")
+		fmt.Println(r.URL.Path)
+		fileServer.ServeHTTP(w, r)
+	}
+}
+
 func main() {
 	initialize()
 	/*
@@ -421,12 +464,16 @@ func main() {
 	*/
 
 	r := mux.NewRouter()
+	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", http.HandlerFunc(makeImagesHandler()))).Methods("GET")
 	r.HandleFunc("/admin/new", adminNewHandler).Methods("POST")
 	r.HandleFunc("/admin/edit/{id}", adminEditHandler).Methods("GET", "POST")
 	r.HandleFunc("/admin", adminHandler).Methods("GET")
 	r.HandleFunc("/feed", feedHandler).Methods("GET")
 	r.HandleFunc("/", indexHandler).Methods("GET")
 	r.HandleFunc("/entry/{id}", entryHandler).Methods("GET")
+	r.HandleFunc("/service-worker.js", serviceWorkerHandler).Methods("GET")
+	r.HandleFunc("/offline", offlineHandler).Methods("GET")
+	r.HandleFunc("/manifest.json", manifestHandler).Methods("GET")
 
 	http.Handle("/", r)
 	port := os.Getenv("PORT")
