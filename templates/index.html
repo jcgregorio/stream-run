@@ -5,9 +5,9 @@
   {{template "header.html"}}
 </head>
 <body>
-  <header>
+  <div class=header>
     <h1>{{.Config.author}} | Stream</h1>
-  </header>
+  </div>
   {{if  ne .Offset -1}}
     <div><a href="?offset={{.Offset}}">Next</a></div>
   {{end}}

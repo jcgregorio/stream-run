@@ -21,23 +21,24 @@
 		<article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 			<header class="post-header">
 				<h1 class="post-title p-name" itemprop="name headline">{{ .Cooked.Title }}</h1>
-				<p class="post-meta">
-					<a class="u-url" href="/entry/{{ .Cooked.ID }}">
-						<time datetime="{{ .Cooked.Created | atomTime }}" itemprop="datePublished" class="dt-published">
-               {{ .Cooked.Created | humanTime }}
-						</time>
-					</a>
-					• <a rel="author me" class="p-author h-card" href="{{ .Config.author_url }}"> <span itemprop="author" itemscope itemtype="http://schema.org/Person">
-							<img class="u-photo" src="{{ .Config.author_image_url }}" alt="" style="height: 16px; border-radius: 8px; margin-right: 4px;" />
-							<span itemprop="name">{{ .Config.author }}</span></span>
-					</a>
-				</p>
 			</header>
 
 			<div class="post-content e-content" itemprop="articleBody">
 				{{ .Cooked.Content }}
 				<a href="https://brid.gy/publish/twitter"></a>
 			</div>
+
+      <p class="post-meta">
+        <a class="u-url" href="/entry/{{ .Cooked.ID }}">
+          <time datetime="{{ .Cooked.Created | atomTime }}" itemprop="datePublished" class="dt-published">
+            {{ .Cooked.Created | humanTime }}
+          </time>
+        </a>
+        • <a rel="author me" class="p-author h-card" href="{{ .Config.author_url }}"> <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <img class="u-photo" src="{{ .Config.author_image_url }}" alt="" style="height: 16px; border-radius: 8px; margin-right: 4px;" />
+            <span itemprop="name">{{ .Config.author }}</span></span>
+        </a>
+      </p>
 
 			<script type="text/javascript" charset="utf-8">
 				fetch('https://webmention.bitworking.org/Mentions', {
