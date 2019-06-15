@@ -13,5 +13,15 @@
   "start_url": "/offline",
   "display": "standalone",
   "background_color": "#990000",
-  "theme_color": "#990000"
+  "theme_color": "#990000",
+  "share_target": {
+    "action": "/admin",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

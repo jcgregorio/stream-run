@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	units "github.com/docker/go-units"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -120,6 +121,7 @@ type adminContext struct {
 	Entries []*entryContent
 	Offset  int
 	Config  map[string]interface{}
+	Form    map[string]string
 }
 
 type entryContent struct {
@@ -140,15 +142,58 @@ func parseWithDefault(s string, defaultValue int) int {
 	return int(ret)
 }
 
+// The returned map has values for 'title' and 'content'.
+//
+// For example Chrome on Android shares the title: and from Twitter web that looks like:
+//   <user name> on Twitter: "full tweet text <t.co link>" / Twitter
+// and text: is the url of the tweet.
+func shareTargetToMap(form url.Values) map[string]string {
+	ret := map[string]string{}
+	ret["title"] = form.Get("title")
+	ret["content"] = form.Get("text")
+
+	// Presume that all links are coming from Chrome, so text: is the url most of
+	// the time, but not always, you can select text to share, and that shows up
+	// w/o a URL.
+	u := form.Get("text")
+	if _, err := url.Parse(u); err != nil {
+		u = ""
+	}
+	if u == "" {
+		u = form.Get("url")
+	}
+	if u != "" {
+		doc, err := goquery.NewDocument(u)
+		if err != nil {
+			log.Infof("goquery failed to parse %q: %s", u, err)
+			return ret
+		}
+		u = doc.Find("link[rel=canonical]").AttrOr("href", u)
+		ret["title"] = doc.Find("title").Contents().Text()
+		ret["content"] = fmt.Sprintf("[%s](%s)", ret["title"], u)
+	}
+	return ret
+}
+
 // adminHandler displays the admin page for Stream.
+//
+// They query parameters 'title', 'text', and 'url' may be supplied by a Web
+// Share Target call and should pre-populate the form for creating a new
+// entry.
 func adminHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	context := &adminContext{}
 	isAdmin := ad.IsAdmin(r, log)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form values.", 400)
+		return
+	}
 	context = &adminContext{
 		IsAdmin: isAdmin,
 		Config:  viper.AllSettings(),
+		Form:    shareTargetToMap(r.Form),
 	}
+	log.Infof("Form: %#v", context.Form)
 	if isAdmin {
 		limit := parseWithDefault(r.FormValue("limit"), 20)
 		offset := parseWithDefault(r.FormValue("offset"), 0)
@@ -296,8 +341,7 @@ func sendWebMentions(id, content string) error {
 		resp, err := m.SendWebmention(endpoint, source, link)
 		if err != nil {
 			log.Infof("Failed to send webmention: %s", err)
-		}
-		if resp.StatusCode >= 400 {
+		} else if resp.StatusCode >= 400 {
 			log.Infof("Failed to send webmention: Status code %d:%s: %s", resp.StatusCode, resp.Status, err)
 		}
 		log.Infof("Webmention sent: %q -> %q", source, link)
