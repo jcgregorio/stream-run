@@ -348,11 +348,12 @@ func sendWebMentions(id, content string) error {
 		}
 		resp, err := m.SendWebmention(endpoint, source, link)
 		if err != nil {
-			log.Infof("Failed to send webmention: %s", err)
+			log.Infof("Failed to send webmention %q -> %q: %s", source, link, err)
 		} else if resp.StatusCode >= 400 {
-			log.Infof("Failed to send webmention: Status code %d:%s: %s", resp.StatusCode, resp.Status, err)
+			log.Infof("Failed to send webmention %q -> %q: Status code %d:%s: %s", source, link, resp.StatusCode, resp.Status, err)
+		} else {
+			log.Infof("Webmention sent: %q -> %q", source, link)
 		}
-		log.Infof("Webmention sent: %q -> %q", source, link)
 	}
 	websubUrl := viper.GetString(WEBSUB)
 	resp, err := client.PostForm(websubUrl, url.Values{
