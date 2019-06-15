@@ -37,7 +37,8 @@ const (
 	HOST                = "HOST"
 	AUTHOR              = "AUTHOR"
 	WEBSUB              = "WEBSUB"
-	WEBMENTION_BRIDGE   = "WEBMENTION_BRIDGE"
+	BRIDGES             = "BRIDGES"
+	FEDSOC_BRIDGE       = "FEDSOC_BRIDGE"
 )
 
 // flags
@@ -171,7 +172,7 @@ func shareTargetToMap(form url.Values) map[string]string {
 		}
 		u = doc.Find("link[rel=canonical]").AttrOr("href", u)
 		ret["title"] = doc.Find("title").Contents().Text()
-		ret["content"] = fmt.Sprintf("[%s](%s)", ret["title"], u)
+		ret["content"] = fmt.Sprintf("<a class='u-in-reply-to' href='%s'>%s</a>", u, ret["title"])
 	}
 	return ret
 }
@@ -278,7 +279,12 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 
 func toDisplayContent(s string) string {
 	content := strings.ReplaceAll(s, "\r\n", "\n")
-	return string(blackfriday.Run([]byte(content))) + fmt.Sprintf("<a href='%s'></a>", viper.GetString(WEBMENTION_BRIDGE))
+	bridges := []string{}
+	for _, href := range viper.GetStringSlice(BRIDGES) {
+		bridges = append(bridges, fmt.Sprintf("<a href='%s'></a>", href))
+	}
+
+	return string(blackfriday.Run([]byte(content))) + strings.Join(bridges, " ")
 }
 
 // toDisplay converts an entries.Entry into an entryContent.
@@ -335,6 +341,7 @@ func sendWebMentions(id, content string) error {
 		return fmt.Errorf("Failed to discover links in %q: %s", content, err)
 	}
 	for _, link := range links {
+		log.Infof("Webmention trying to send: %q -> %q", source, link)
 		endpoint, err := m.DiscoverEndpoint(link)
 		if err != nil {
 			return err
@@ -488,6 +495,13 @@ func makeImagesHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func makeRedirectHandler(path string) func(http.ResponseWriter, *http.Request) {
+	domain := viper.GetString(FEDSOC_BRIDGE)
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, domain+path, http.StatusPermanentRedirect)
+	}
+}
+
 func main() {
 	initialize()
 	/*
@@ -519,6 +533,10 @@ func main() {
 	r.HandleFunc("/service-worker.js", serviceWorkerHandler).Methods("GET")
 	r.HandleFunc("/offline", offlineHandler).Methods("GET")
 	r.HandleFunc("/manifest.json", manifestHandler).Methods("GET")
+	r.HandleFunc("/.well-known/host-meta", makeRedirectHandler("/.well-known/host-meta")).Methods("GET")
+	r.HandleFunc("/.well-known/host-meta.xrd", makeRedirectHandler("/.well-known/host-meta.xrd")).Methods("GET")
+	r.HandleFunc("/.well-known/host-meta.jrd", makeRedirectHandler("/.well-known/host-meta.jrd")).Methods("GET")
+	r.HandleFunc("/.well-known/webfinger", makeRedirectHandler("/.well-known/webfinger")).Methods("GET")
 
 	http.Handle("/", r)
 	port := os.Getenv("PORT")

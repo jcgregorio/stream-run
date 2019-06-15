@@ -15,5 +15,9 @@
   "LOGO_URL": "https://bitworking.org/images/newlogo.png",
   "EMAIL": "joe@bitworking.org",
   "WEBSUB": "https://switchboard.p3k.io/",
-  "WEBMENTION_BRIDGE": "https://brid.gy/publish/twitter"
+  "BRIDGES": [
+    "https://brid.gy/publish/twitter",
+    "https://fed.brid.gy/"
+  ],
+  "FEDSOC_BRIDGE": "https://fed.brid.gy"
 }
