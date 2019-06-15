@@ -37,6 +37,7 @@ const (
 	HOST                = "HOST"
 	AUTHOR              = "AUTHOR"
 	WEBSUB              = "WEBSUB"
+	WEBMENTION_BRIDGE   = "WEBMENTION_BRIDGE"
 )
 
 // flags
@@ -277,7 +278,7 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 
 func toDisplayContent(s string) string {
 	content := strings.ReplaceAll(s, "\r\n", "\n")
-	return string(blackfriday.Run([]byte(content)))
+	return string(blackfriday.Run([]byte(content))) + fmt.Sprintf("<a href='%s'></a>", viper.GetString(WEBMENTION_BRIDGE))
 }
 
 // toDisplay converts an entries.Entry into an entryContent.

@@ -14,5 +14,6 @@
   "TWITTER": "bitworking",
   "LOGO_URL": "https://bitworking.org/images/newlogo.png",
   "EMAIL": "joe@bitworking.org",
-  "WEBSUB": "https://switchboard.p3k.io/"
+  "WEBSUB": "https://switchboard.p3k.io/",
+  "WEBMENTION_BRIDGE": "https://brid.gy/publish/twitter"
 }
