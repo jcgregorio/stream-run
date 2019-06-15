@@ -9,36 +9,30 @@
    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-  <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
-    <script>
-      function onSignIn(googleUser) {
-        document.cookie = "id_token=" + googleUser.getAuthResponse().id_token;
-        if (!{{.IsAdmin}}) {
-          window.location.reload();
-        }
-      };
-    </script>
   {{if  ne .Offset -1}}
     <div><a href="?offset={{.Offset}}">Next</a></div>
   {{end}}
-	<div>
+  <div class=editor>
+    <div id=g-signin2 class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
 		<form action="/admin/new" method="post" accept-charset="utf-8">
-      <p><input type="text" name="title" value="{{.Form.title}}"></p>
-      <textarea name="content" rows="8" cols="80">{{.Form.content}}</textarea>
-			<p><input type="submit" value="Insert"></p>
+      <input type="text" name="title" value="{{.Form.title}}" title="Title">
+      <textarea name="content" rows="10" cols="40" title="Content (Markdown)">{{.Form.content}}</textarea>
+      <input type="submit" value="Insert">
 		</form>
 	</div>
 	<hr>
-  {{range .Entries}}
-		<div class=entry>
-			<h2>{{ .Title }}</h2>
-			<div>
+  <main>
+    {{range .Entries}}
+      <div class=entry>
         <span class=created>{{ .Created | humanTime }}</span>
-				{{ .Content }}
-			</div>
-			<a href="/admin/edit/{{ .ID }}">Edit</a>
-		</div>
-  {{end}}
+        <h2>{{ .Title }}</h2>
+        <div>
+          {{ .Content }}
+        </div>
+        <a href="/admin/edit/{{ .ID }}">Edit</a>
+      </div>
+    {{end}}
+  </main>
   <script type="text/javascript" charset="utf-8">
     // Check that service workers are registered
     if ('serviceWorker' in navigator) {
@@ -46,6 +40,16 @@
         navigator.serviceWorker.register('/service-worker.js');
       });
     }
+  </script>
+  <script>
+    function onSignIn(googleUser) {
+      document.cookie = "id_token=" + googleUser.getAuthResponse().id_token;
+      if (!{{.IsAdmin}}) {
+        window.location.reload();
+      } else {
+        document.getElementById("g-signin2").style.display = 'none';
+      }
+    };
   </script>
 </body>
 </html>

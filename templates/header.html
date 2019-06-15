@@ -4,12 +4,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style type="text/css" media="screen">
 .created {
-  float: right;
+  font-size: 80%;
+  color: #555;
+}
+
+body {
+  margin: 0;
+  font: 400 12px/1.5 Roboto, Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #294082;
+}
+
+header {
+  margin: 0;
+  border-bottom: solid 1px #900;
+  padding: 0;
+  text-align: center;
+}
+
+footer {
+  margin: 0;
+  border-top: solid 1px #900;
+  padding: 0;
+  text-align: center;
+}
+
+footer > * {
+  display: inline-block;
+}
+
+h1 {
+  color: #900;
+  font-size: 18px;
+  margin: 0.6em;
+}
+
+h2 {
+  font-size: 16px;
+  color: #444;
+  margin: 0;
+}
+
+.editor > * {
+  padding: 0.25em;
+  display: block;
+  margin: 0.6em;
+}
+
+input[type=submit],
+button {
+  background: #eee;
+}
+
+form * {
+  padding: 0.4em;
+  display: block;
+  margin: 0.6em 0;
+}
+
+form input[type=text],
+form textarea {
+  width: 90%;
+  width: calc(100% - 1em);
 }
 
 .entry {
+/*  border: solid #eee 0.8px;
+  border-radius: 0.4em;
+*/
   margin: 1em;
   padding: 1em;
-  background: #eee;
 }
   </style>
