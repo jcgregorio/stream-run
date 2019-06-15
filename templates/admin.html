@@ -6,6 +6,7 @@
   <meta name="google-signin-client_id" content="{{.Config.client_id}}">
   <script src="https://apis.google.com/js/platform.js" async defer></script>
   {{template "header.html"}}
+   <link rel="manifest" href="/manifest.json">
 </head>
 <body>
   <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
@@ -38,5 +39,13 @@
 			<a href="/admin/edit/{{ .ID }}">Edit</a>
 		</div>
   {{end}}
+  <script type="text/javascript" charset="utf-8">
+    // Check that service workers are registered
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js');
+      });
+    }
+  </script>
 </body>
 </html>

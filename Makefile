@@ -14,6 +14,8 @@ release:
 	GOBIN=`pwd`/build CGO_ENABLED=0 GOOS=linux go install -a .
 	install -d  ./build/usr/local/stream-run/templates
 	install ./templates/* ./build/usr/local/stream-run/templates
+	install -d  ./build/usr/local/stream-run/images
+	install ./images/* ./build/usr/local/stream-run/images
 	install ./config.json ./build/usr/local/stream-run/config.json
 	cp Dockerfile ./build
 	docker build ./build --tag stream --tag gcr.io/$(PROJECT)/stream
