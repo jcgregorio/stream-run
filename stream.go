@@ -231,7 +231,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		log.Warningf("Failed to get entries: %s", err)
 		return
 	}
-	fmt.Printf("%#v\n", viper.AllSettings())
+	log.Infof("%#v\n", viper.AllSettings())
 	context := &indexContext{
 		Config:  viper.AllSettings(),
 		Entries: toDisplaySlice(entries),
@@ -255,7 +255,7 @@ type feedContext struct {
 
 // feedHandler displays the admin page for Stream.
 func feedHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "application/atom+xml")
 	entries, err := entryDB.List(r.Context(), 10, 0)
 	if err != nil {
 		log.Warningf("Failed to get entries: %s", err)
@@ -319,12 +319,12 @@ func adminNewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	content := r.FormValue("content")
 	id, err := entryDB.Insert(r.Context(), content, r.FormValue("title"))
-	if err := sendWebMentions(id, toDisplayContent(content)); err != nil {
-		log.Warningf("Failed to send webmentions: %s", err)
-	}
 	if err != nil {
 		log.Errorf("Failed to insert: %s", err)
 		http.Error(w, "Failed to insert", http.StatusInternalServerError)
+	}
+	if err := sendWebMentions(id, toDisplayContent(content)); err != nil {
+		log.Warningf("Failed to send webmentions: %s", err)
 	}
 	http.Redirect(w, r, "/admin", 302)
 }
@@ -488,10 +488,8 @@ func offlineHandler(w http.ResponseWriter, r *http.Request) {
 
 func makeImagesHandler() func(http.ResponseWriter, *http.Request) {
 	fileServer := http.FileServer(http.Dir(filepath.Join(*resourcesDir, "images")))
-	fmt.Println(*resourcesDir)
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Cache-Control", "max-age=300")
-		fmt.Println(r.URL.Path)
 		fileServer.ServeHTTP(w, r)
 	}
 }
@@ -499,7 +497,9 @@ func makeImagesHandler() func(http.ResponseWriter, *http.Request) {
 func makeRedirectHandler(path string) func(http.ResponseWriter, *http.Request) {
 	domain := viper.GetString(FEDSOC_BRIDGE)
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, domain+path, http.StatusPermanentRedirect)
+		u := domain + path + r.URL.RawQuery
+		log.Infof("Redirecting to: %q", u)
+		http.Redirect(w, r, u, 302)
 	}
 }
 

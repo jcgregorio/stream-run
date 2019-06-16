@@ -1,11 +1,12 @@
 
-  <footer class="h-card footer-col footer-col-3">
+  <footer class="h-card vcard">
+    <a rel="me" class="u-url url u-uid uid" href="{{ .Config.host}}"></a>
     <p class="p-note">{{ .Config.author }} - {{ .Config.author_desc }}</p>
-    <a class="p-name u-url" href="{{ .Config.author_url }} " style="display: none"><img
+    <a class="p-name u-url url fn" href="{{ .Config.author_url }} " style="display: none"><img
                class="u-photo"
                src="{{ .Config.author_image_url }}"
-               alt="" />{{ .Config.author }}</a>
+               alt="{{ .Config.author }}" /><span class="hcard-name p-name n">{{ .Config.author }}</span></a>
     <a href="{{ .Config.host }}" class="u-url u-uid"></a>
-    <a rel="me" class="u-email" href="mailto:{{ .Config.email }}"></a>
+    <a rel="me" class="email u-email" href="mailto:{{ .Config.email }}"></a>
     <a href="/admin">Admin</a>
   </footer>

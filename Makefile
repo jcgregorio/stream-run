@@ -21,7 +21,7 @@ release:
 	docker build ./build --tag stream --tag gcr.io/$(PROJECT)/stream
 	docker push gcr.io/$(PROJECT)/stream
 
-push:
+push: release
 	gcloud beta run deploy stream \
 	   --allow-unauthenticated --region $(REGION) \
 		 --image gcr.io/$(PROJECT)/stream
