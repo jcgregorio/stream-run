@@ -11,7 +11,7 @@
   {{$Host := .Config.host}}
   {{range .Entries}}
     <entry>
-      <title type="html">OpenID Connect for US Citizens</title>
+      <title type="html">{{.Title}}</title>
       <link href="{{$Host}}/entry/{{.ID}}" rel="alternate" type="text/html" title="{{.Title}}" />
       <published>{{.Created | atomTime}}</published>
       <updated>{{.Updated | atomTime}}</updated>
